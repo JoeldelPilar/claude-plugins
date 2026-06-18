@@ -1,9 +1,9 @@
 {
-  "name": "eyevinn-claude",
+  "name": "joeldelpilar",
   "owner": {
     "name": "Joel del Pilar"
   },
-  "description": "Eyevinn Claude Code plugins.",
+  "description": "Claude Code plugins by Joel del Pilar.",
   "plugins": [
     {
       "name": "auto-docs",
