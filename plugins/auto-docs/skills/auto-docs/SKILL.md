@@ -14,12 +14,15 @@ The skill body below is agent-agnostic (works in Claude Code or Codex, locally o
 
 ## Quick start
 
-1. Detect context (deterministic — don't eyeball it):
+1. Detect context (deterministic — don't eyeball it). The script ships **inside this skill's own directory**, not in the target repo — invoke it by its install path from anywhere inside the repo you're documenting (the script `cd`s to the repo root itself):
    ```sh
-   ./scripts/detect-context.sh            # local: diffs against HEAD~1
-   ./scripts/detect-context.sh <BASE_REF> # explicit base, e.g. a release tag
+   # CI / installed skill:
+   bash .claude/skills/auto-docs/scripts/detect-context.sh
+   # locally: use the path your agent loaded this skill from, e.g.
+   bash "<skill-dir>/scripts/detect-context.sh"             # diffs against the previous commit
+   bash "<skill-dir>/scripts/detect-context.sh" <BASE_REF>  # explicit base, e.g. a release tag
    ```
-   It prints `MODE`, `DOCS_EXIST`, `DOCS_DIR`, `BASE_REF`, and (in update mode) the list of changed source files.
+   It prints `MODE`, `DOCS_EXIST`, `DOCS_DIR`, `BASE_REF`, and (in update mode) a `CHANGED_FILES` list — or an `<unknown: …>` marker when no usable base ref could be resolved.
 2. Run the matching workflow below.
 3. Write changes to a branch and open a PR titled `docs: …` — never commit straight to the default branch. Let a human review.
 
@@ -30,6 +33,7 @@ README.md            # entry point: what/why, quickstart, links into docs/
 docs/
   overview.md        # purpose, domains, glossary of project terms
   architecture.md    # components, data flow, Mermaid diagrams
+  modules/README.md  # index linking the per-module docs
   modules/<name>.md  # one per package / service / significant module
   api/README.md      # API reference (endpoints + types), from code or OpenAPI
 ```
@@ -45,10 +49,10 @@ Full templates for each file: [DOC-STRUCTURE.md](DOC-STRUCTURE.md).
 
 ## Workflow — update mode
 
-1. Read the changed files reported by `detect-context.sh` and the PR/commit messages for the merge.
+1. Read the changed files reported by `detect-context.sh` and the PR/commit messages for the merge. If `CHANGED_FILES` is an `<unknown: …>` marker (the base ref didn't resolve), do **not** assume "no changes" — review the docs against the current code and refresh whatever is stale.
 2. Map each change to the docs it touches: new/changed module → its `docs/modules/*.md`; new/changed endpoint or type → `docs/api/`; structural change (new service, new dependency, moved boundary) → `docs/architecture.md` + diagram; behaviour described in README/overview → refresh it.
 3. **Edit in place. Do not rewrite untouched docs** and do not regenerate files no change affected. Preserve the existing voice and structure.
-4. If a change has no doc impact, say so and make no edits — an empty diff is a valid result.
+4. If the changed-file list is genuinely empty (not `<unknown>`) and nothing affects the docs, say so and make no edits — an empty diff is a valid result.
 
 ## Writing principles
 

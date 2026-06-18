@@ -25,12 +25,16 @@ DOCS_DIR="docs"
 # --- Do docs already exist? -------------------------------------------------
 # Signal = a docs/ directory containing at least one Markdown file.
 docs_exist=false
-if [ -d "$DOCS_DIR" ] && find "$DOCS_DIR" -type f -name '*.md' 2>/dev/null | grep -q .; then
+# `-print -quit` stops find at the first match, so this never relies on a pipe.
+# (A `… | grep -q .` here dies with SIGPIPE 141, which `set -o pipefail` turns
+# into a false negative on docs/ trees with many Markdown files.)
+if [ -d "$DOCS_DIR" ] && [ -n "$(find "$DOCS_DIR" -type f -name '*.md' -print -quit 2>/dev/null)" ]; then
   docs_exist=true
 fi
 
 # --- Resolve the base ref for the diff --------------------------------------
 base="${1:-${GITHUB_EVENT_BEFORE:-}}"
+base="${base%$'\r'}"   # strip a trailing CR from CRLF-sourced values
 
 # GitHub sends an all-zero SHA for the first push to a branch — treat as none.
 case "$base" in
@@ -39,6 +43,15 @@ esac
 
 if [ -z "$base" ] && git rev-parse --verify --quiet HEAD~1 >/dev/null 2>&1; then
   base="HEAD~1"
+fi
+
+# If a base was given but doesn't resolve to a real commit (force-push-orphaned
+# SHA, missing tag, shallow clone), don't silently diff against nothing — flag
+# it so the result reads as "unknown", never as a false "no changes".
+base_unresolved=false
+if [ -n "$base" ] && ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null 2>&1; then
+  base_unresolved=true
+  base=""
 fi
 
 # --- Decide mode ------------------------------------------------------------
@@ -54,11 +67,21 @@ echo "DOCS_DIR=$DOCS_DIR"
 echo "BASE_REF=${base:-<none>}"
 
 # --- Changed source files (update mode only) --------------------------------
-# Exclude docs themselves and Markdown so a docs-only commit can't trigger a
-# regeneration loop.
-if [ "$mode" = "update" ] && [ -n "$base" ]; then
+# Excludes the docs this skill writes (docs/** and the root README) so a
+# docs-only commit can't trigger a regeneration loop — but keeps Markdown
+# *source* elsewhere (e.g. content/*.md) visible to update mode.
+if [ "$mode" = "update" ]; then
   echo "--- CHANGED_FILES ---"
-  git diff --name-only "$base" HEAD -- \
-    | grep -vE '^docs/|\.md$' \
-    || true
+  if [ "$base_unresolved" = true ]; then
+    echo "<unknown: base ref did not resolve — cannot compute changes; do NOT treat as 'no changes'>"
+  elif [ -z "$base" ]; then
+    echo "<unknown: no base ref available — cannot compute changes; do NOT treat as 'no changes'>"
+  else
+    # core.quotePath=false → literal UTF-8 paths (no C-quoting of odd names).
+    # Three-dot diff → only what this change introduced vs the merge base.
+    # The grep is brace-grouped so "no matches" (exit 1) doesn't abort, while a
+    # real git failure still propagates under `set -o pipefail`.
+    git -c core.quotePath=false diff --name-only "$base"...HEAD -- \
+      | { grep -vE '^docs/|^README\.md$' || true; }
+  fi
 fi

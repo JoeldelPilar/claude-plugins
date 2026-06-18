@@ -12,6 +12,7 @@ docs/
   overview.md             # what the project is, the domains it covers, glossary
   architecture.md         # components, how they fit, data flow (Mermaid)
   modules/
+    README.md             # index linking each per-module doc
     <module-a>.md         # one file per package / service / significant module
     <module-b>.md
   api/
@@ -54,12 +55,27 @@ A monorepo or microservice fleet warrants the full `modules/` and `api/` trees.
 
 - [Overview](docs/overview.md) — concepts and glossary
 - [Architecture](docs/architecture.md) — how the pieces fit
-- [Modules](docs/modules/) — per-component docs
+- [Modules](docs/modules/README.md) — per-component docs
 - [API reference](docs/api/README.md)
 
 ## Requirements
 
 <languages, runtimes, services, and their versions — read from the manifest files>
+```
+
+---
+
+## `docs/modules/README.md` (index)
+
+So the `[Modules](docs/modules/README.md)` link from the root README resolves in every renderer, not just GitHub's directory view.
+
+```markdown
+# Modules
+
+| Module | Responsibility |
+| ------ | -------------- |
+| [<module-a>](<module-a>.md) | <one line> |
+| [<module-b>](<module-b>.md) | <one line> |
 ```
 
 ---
