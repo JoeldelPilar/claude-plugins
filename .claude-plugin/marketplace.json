@@ -1,0 +1,15 @@
+{
+  "name": "eyevinn-claude",
+  "owner": {
+    "name": "Joel del Pilar"
+  },
+  "description": "Eyevinn Claude Code plugins.",
+  "plugins": [
+    {
+      "name": "auto-docs",
+      "source": "./plugins/auto-docs",
+      "description": "Generate and maintain docs from code — bootstrap, backfill, and PR-merge updates.",
+      "version": "0.1.0"
+    }
+  ]
+}
