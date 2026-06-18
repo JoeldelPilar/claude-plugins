@@ -36,22 +36,31 @@ fi
 base="${1:-${GITHUB_EVENT_BEFORE:-}}"
 base="${base%$'\r'}"   # strip a trailing CR from CRLF-sourced values
 
-# GitHub sends an all-zero SHA for the first push to a branch — treat as none.
+# GitHub sends an all-zero SHA for the first push of a branch. Distinguish it
+# from a local run (empty base): a first push commonly lands many commits at
+# once, so HEAD~1 would undercount — only fall back to HEAD~1 for a local run.
+first_push=false
 case "$base" in
-  "" | 0000000000000000000000000000000000000000) base="" ;;
+  "") base="" ;;
+  0000000000000000000000000000000000000000) base=""; first_push=true ;;
 esac
 
-if [ -z "$base" ] && git rev-parse --verify --quiet HEAD~1 >/dev/null 2>&1; then
+if [ "$first_push" = false ] && [ -z "$base" ] \
+   && git rev-parse --verify --quiet HEAD~1 >/dev/null 2>&1; then
   base="HEAD~1"
 fi
 
-# If a base was given but doesn't resolve to a real commit (force-push-orphaned
-# SHA, missing tag, shallow clone), don't silently diff against nothing — flag
-# it so the result reads as "unknown", never as a false "no changes".
+# If a base was given but is unusable — doesn't resolve to a real commit
+# (force-push-orphaned SHA, missing tag, shallow clone) OR shares no history
+# with HEAD (orphan/unrelated history, where a three-dot diff would abort with
+# "no merge base") — flag it as unknown rather than crashing or diffing nothing.
 base_unresolved=false
-if [ -n "$base" ] && ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null 2>&1; then
-  base_unresolved=true
-  base=""
+if [ -n "$base" ]; then
+  if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null 2>&1; then
+    base_unresolved=true; base=""
+  elif ! git merge-base "$base" HEAD >/dev/null 2>&1; then
+    base_unresolved=true; base=""
+  fi
 fi
 
 # --- Decide mode ------------------------------------------------------------
@@ -73,12 +82,15 @@ echo "BASE_REF=${base:-<none>}"
 if [ "$mode" = "update" ]; then
   echo "--- CHANGED_FILES ---"
   if [ "$base_unresolved" = true ]; then
-    echo "<unknown: base ref did not resolve — cannot compute changes; do NOT treat as 'no changes'>"
+    echo "<unknown: base ref unusable (missing or unrelated history) — cannot compute changes; do NOT treat as 'no changes'>"
+  elif [ "$first_push" = true ]; then
+    echo "<unknown: first push (many commits, no single prior base) — review all docs against the current code>"
   elif [ -z "$base" ]; then
     echo "<unknown: no base ref available — cannot compute changes; do NOT treat as 'no changes'>"
   else
     # core.quotePath=false → literal UTF-8 paths (no C-quoting of odd names).
-    # Three-dot diff → only what this change introduced vs the merge base.
+    # Three-dot diff → only what this change introduced vs the merge base; the
+    # merge-base check above guarantees one exists, so no "no merge base" abort.
     # The grep is brace-grouped so "no matches" (exit 1) doesn't abort, while a
     # real git failure still propagates under `set -o pipefail`.
     git -c core.quotePath=false diff --name-only "$base"...HEAD -- \

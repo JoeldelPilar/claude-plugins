@@ -63,6 +63,8 @@ A monorepo or microservice fleet warrants the full `modules/` and `api/` trees.
 <languages, runtimes, services, and their versions — read from the manifest files>
 ```
 
+> Drop the **Modules** and/or **API reference** links above if you didn't create `docs/modules/` or `docs/api/` (a small library may need only README + overview) — a link to a file you never wrote is a dead link.
+
 ---
 
 ## `docs/modules/README.md` (index)

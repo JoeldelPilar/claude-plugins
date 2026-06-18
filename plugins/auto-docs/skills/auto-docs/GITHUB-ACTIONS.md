@@ -15,8 +15,7 @@ Verified against `anthropics/claude-code-action@v1`.
    (Claude Code auto-loads skills from `.claude/skills/`.)
 2. **Add the API key** as a repo secret: `ANTHROPIC_API_KEY`.
    - Vendor-independent alternative: authenticate against **AWS Bedrock** or **Google Vertex** instead — the action supports both via env/config. See the action's auth docs and drop the `anthropic_api_key` input.
-3. **Make the helper executable** when you commit it: `chmod +x .claude/skills/auto-docs/scripts/detect-context.sh`.
-4. **Branch protection**: the workflow opens a PR rather than pushing to the default branch, so the only requirement is that Actions is allowed to create PRs (Settings → Actions → "Allow GitHub Actions to create and approve pull requests").
+3. **Branch protection**: the workflow opens a PR rather than pushing to the default branch, so the only requirement is that Actions is allowed to create PRs (Settings → Actions → "Allow GitHub Actions to create and approve pull requests"). (The script is run as `bash <path>`, so no execute bit is needed.)
 
 ## Workflow
 
@@ -28,15 +27,21 @@ name: auto-docs
 on:
   push:
     branches: [main]        # runs after a PR merges
+    # Skip merges that only touch the docs this skill writes (avoids a wasted
+    # billable run). Narrow on purpose — does NOT ignore **/*.md source.
+    paths-ignore: ['docs/**', 'README.md']
   workflow_dispatch:        # manual run (use this for the first bootstrap)
     inputs:
       model:
         description: "Model alias or id (sonnet | opus | claude-opus-4-8 …)"
         default: "sonnet"
 
-# Serialize docs runs per branch, but DON'T cancel an in-flight run — a routine
-# merge landing during a long bootstrap must not kill it. Branches are run-id
-# suffixed, so a queued run never clashes with the one ahead of it.
+# Serialize docs runs for this ref (the group key is github.ref, so every push
+# to main shares one lane). cancel-in-progress:false keeps a long bootstrap
+# alive when a routine merge lands. Caveat: GitHub keeps only ONE pending run
+# per group — if several merges land while a run is busy, only the latest is
+# queued and the intermediate ones are superseded. The next run documents the
+# cumulative state; re-dispatch manually if you need a specific point.
 concurrency:
   group: auto-docs-${{ github.ref }}
   cancel-in-progress: false
@@ -76,8 +81,9 @@ jobs:
             2. Follow the skill's bootstrap or update workflow based on the reported MODE.
             3. Commit all changes to a new branch named docs/auto-${{ github.run_id }},
                then push it: git push -u origin docs/auto-${{ github.run_id }}
-            4. Open a pull request to ${{ github.ref_name }}. Title it
-               "docs: bootstrap documentation" when MODE=bootstrap, otherwise
+            4. Open a pull request to ${{ github.ref_name }}. Use the MODE you
+               read in step 1 (note it before you start): title the PR
+               "docs: bootstrap documentation" if MODE=bootstrap, else
                "docs: update from auto-docs". Summarise what you did in the body.
             5. If MODE=update and the changed-file list is empty, make NO edits,
                open NO PR, and say so — an empty result is valid. But if the list
@@ -98,7 +104,6 @@ jobs:
 
 - **First run = bootstrap.** Trigger it manually via *Run workflow* on a repo with no `docs/`. It will scan everything and open the initial docs PR. For a large/mature codebase, bump the dispatch `model` input to `opus` (or pin `claude-opus-4-8`) and raise `--max-turns`.
 - **Why a PR, not a push?** Keeps a human in the loop and matches the PR-review-before-merge standard. The merge that opened the PR is already on the default branch; the docs follow in their own reviewable PR.
-- **Avoiding wasted runs.** A docs-only merge still fires the `push` trigger and starts a billable Claude run that then finds nothing to do — safe, but not free. `detect-context.sh` only keeps the *changed-file list* clean (it excludes `docs/**` and the root `README.md`); it does **not** stop the run. To actually skip docs-only merges, add the `paths-ignore` filter below — that's the real fix, not just an optimization.
-- **Scoping the trigger.** Add `paths-ignore: ['docs/**', 'README.md']` to the `push` trigger so the docs this skill writes don't start a run. Deliberately narrow — it does **not** ignore `**/*.md`, so genuine Markdown *source* changes elsewhere still trigger a docs update. Widen the pattern only if your repo treats other `.md` files as generated docs.
+- **Avoiding wasted runs.** The `push` trigger above already carries `paths-ignore: ['docs/**', 'README.md']`, so a merge touching only the docs this skill writes won't start a billable run. It's deliberately narrow — it does **not** ignore `**/*.md`, so genuine Markdown *source* changes elsewhere still trigger a docs update. Widen it only if your repo treats other `.md` files as generated docs. (`detect-context.sh`'s own filter just cleans the changed-file *list*; the `paths-ignore` is what actually skips the run.)
 - **Tightening permissions.** `Bash(bash:*)` is there to run the detect script and `git push`. You can narrow it to explicit prefixes (`Bash(bash .claude/skills/auto-docs/scripts/detect-context.sh:*)`) once you've confirmed your runner's working directory.
 - **Codex / other agents.** This template is the Claude Code integration. The skill instructions themselves are agent-agnostic — to run elsewhere, point that agent at `SKILL.md` and have it follow the same workflow.

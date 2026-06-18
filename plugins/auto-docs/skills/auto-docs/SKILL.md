@@ -44,7 +44,7 @@ Full templates for each file: [DOC-STRUCTURE.md](DOC-STRUCTURE.md).
 
 1. **Map the repo before writing.** Read the build/manifest files (`package.json`, `go.mod`, `Cargo.toml`, etc.) to learn languages, frameworks, **exact versions**, scripts, and entry points. Identify packages/services/modules and the boundaries between them.
 2. **Establish vocabulary.** Note the domain terms the code uses (types, routes, table names). Use those exact words in the docs — do not invent synonyms.
-3. **Write in this order**, committing as you go for large repos: `README.md` → `docs/overview.md` → `docs/architecture.md` (with a Mermaid component/data-flow diagram) → `docs/modules/<name>.md` per module → `docs/api/` if the project exposes an API or has an OpenAPI/`*.proto` spec.
+3. **Write in this order**, committing as you go for large repos: `README.md` → `docs/overview.md` → `docs/architecture.md` (with a Mermaid component/data-flow diagram) → `docs/modules/README.md` (the module index) → `docs/modules/<name>.md` per module → `docs/api/` if the project exposes an API or has an OpenAPI/`*.proto` spec. Only create the `docs/modules/` and `docs/api/` trees if the repo warrants them — and if you skip one, drop its link from the root README so there are no dead links.
 4. **Work in passes for large/mature repos.** Don't try to document everything in one shot — cover the most-trafficked modules first, leave a checklist of `<!-- TODO: document X -->` markers for the rest, and note coverage in `docs/overview.md`.
 
 ## Workflow — update mode

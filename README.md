@@ -26,8 +26,8 @@ Update later with `/plugin marketplace update joeldelpilar` then `/plugin update
 
 A plugin installed on a dev machine is **not** present in a CI checkout. For GitHub Actions, either:
 
-1. **Vendor** the skill into the target repo: copy `plugins/auto-docs/skills/auto-docs/` to that repo's `.claude/skills/auto-docs/`, then use the workflow in the skill's `GITHUB-ACTIONS.md`; or
-2. **Install in the workflow**: add a step running `claude plugin marketplace add JoeldelPilar/claude-plugins && claude plugin install auto-docs@joeldelpilar` before invoking the action.
+1. **Vendor** the skill into the target repo (the verified path): copy `plugins/auto-docs/skills/auto-docs/` to that repo's `.claude/skills/auto-docs/`, then use the workflow in the skill's [GITHUB-ACTIONS.md](plugins/auto-docs/skills/auto-docs/GITHUB-ACTIONS.md); or
+2. **Install via the action's own plugin inputs.** `claude-code-action` loads extensions only through its own configuration — a separate `claude plugin install` shell step mutates a different process and is **not** picked up by the action's Claude run. Pass the marketplace and plugin through the action's plugin/marketplace inputs and invoke the namespaced skill; check the action's current docs for the exact input names.
 
 ## Versioning
 
