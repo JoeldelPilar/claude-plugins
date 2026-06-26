@@ -24,7 +24,8 @@ The skill body below is agent-agnostic (works in Claude Code or Codex, locally o
    ```
    It prints `MODE`, `DOCS_EXIST`, `DOCS_DIR`, `BASE_REF`, and (in update mode) a `CHANGED_FILES` list — or an `<unknown: …>` marker when no usable base ref could be resolved.
 2. Run the matching workflow below.
-3. Write changes to a branch and open a PR titled `docs: …` — never commit straight to the default branch. Let a human review.
+3. Verify the result against the code with the review loop (see *Verify before finishing*) **before** committing.
+4. Write changes to a branch and open a PR titled `docs: …` — never commit straight to the default branch. Let a human review.
 
 ## Output layout
 
@@ -54,13 +55,52 @@ Full templates for each file: [DOC-STRUCTURE.md](DOC-STRUCTURE.md).
 3. **Edit in place. Do not rewrite untouched docs** and do not regenerate files no change affected. Preserve the existing voice and structure.
 4. If the changed-file list is genuinely empty (not `<unknown>`) and nothing affects the docs, say so and make no edits — an empty diff is a valid result.
 
+## Verify before finishing — the review loop
+
+Generated docs drift from the code in ways the author can't see — a documented `400` that's really a `500`, a signature that's subtly wrong. Don't ship a pass without checking it against the source.
+
+After writing (bootstrap) or editing (update) the docs, run a review loop:
+
+1. **Run the cheap deterministic checks first.** A markdown link-checker (e.g. `lychee` or `markdown-link-check`) catches dead relative links, and `markdownlint` catches structural problems — both deterministically, and far cheaper than spending an LLM pass on them. Fix what they flag before reviewing.
+2. **Review the docs against the code — independently.** If your runtime can spawn a sub-agent (e.g. Claude Code's `Task` tool), launch a *fresh* one as an adversarial reviewer — it has no stake in the prose and catches what self-review misses. If it can't, review the docs yourself in a clean pass. Give the reviewer this checklist:
+   - Every function/type in `docs/modules/*` matches the source signature exactly — names, inputs, outputs.
+   - Every endpoint in `docs/api/*` matches the router: method, path, request/response shape, and status codes. **Trace the real error path** — an uncaught `throw` bubbles to the top-level handler (often a `500`), so a documented `400`/`404` can be wrong.
+   - No fabricated endpoints, flags, commands, or behaviour; no claim the code doesn't support.
+   - Every relative link resolves.
+
+   The reviewer returns findings grouped by severity — and the bar matters, or the loop never terminates (an adversarial reviewer can always nitpick wording): **INCORRECT** = the docs state something the code contradicts (wrong signature, wrong status code, fabricated behaviour); **OVERSTATED** = true but imprecise or over-emphasised; **OMISSION** = a real behaviour left out. Only **INCORRECT** blocks the loop.
+3. **Fix every INCORRECT finding, then review again.** Address overstatements and omissions where the fix is cheap.
+4. **Stop at zero INCORRECT, or after 3 passes — whichever comes first.** If you hit the cap with findings still open, leave them as `<!-- TODO: reviewer flagged … -->` rather than shipping a silent error. Record the final verdict (the INCORRECT count) in the PR body so a human sees it before merging.
+
+## What kind of docs these are
+
+Generated docs faithfully fill only two of the four [Diátaxis](https://diataxis.fr) modes — the two you can derive from source without guessing:
+
+- **Reference** — `docs/modules/*`, `docs/api/*`. Neutral facts: signatures, inputs/outputs, error modes, endpoints. Structure mirrors the code; no interpretation.
+- **Explanation** — `docs/overview.md`, `docs/architecture.md`. The *why*: purpose, boundaries, how a request flows.
+
+Two rules follow:
+
+- **Don't blur the modes on one page.** The classic failure of generated docs is a reference section padded with invented rationale. Keep reference factual; put every "why" in overview/architecture.
+- **Don't fabricate tutorials or how-to guides** (the other two modes). They need a real user journey and product judgement you can't infer from code — leave a `<!-- TODO: tutorial — needs a human author -->` stub instead.
+
 ## Writing principles
 
-- **Document what the code does, not what it should do.** If behaviour is unclear, read more code; if still unclear, leave a `<!-- TODO -->` rather than guessing. Never fabricate endpoints, flags, or behaviour.
+- **Document what the code does, not what it should do.** If behaviour is unclear, read more code; if still unclear, leave a `<!-- TODO -->` rather than guessing. Never fabricate endpoints, flags, or behaviour — including commands: every command in the README or a quickstart must come from the project's real scripts and manifest, not an invented flag.
 - **Respect the project's real versions.** Reference only APIs/features present in the versions pinned in the manifest files. (Joel's standard.)
 - **Diagrams as Mermaid** — renders on GitHub, vendor-neutral, diffable.
 - **Link, don't duplicate.** Cross-reference with relative links; keep each fact in one place.
 - **Cite the source.** Where useful, point a doc section at the file it describes (e.g. `Source: src/auth/session.ts`).
+
+## Voice & style
+
+How the prose should read — grounded in the [Google developer documentation style guide](https://developers.google.com/style):
+
+- **Second person, active voice, present tense.** "Call `start()` to open a session," not "a session is opened by calling `start()`." Address the reader as "you"; avoid "we/our."
+- **Lead with the point.** The first sentence of a section says what the thing is or does; details follow. Readers scan — they don't read top to bottom.
+- **Short, plain sentences, one idea each.** Expand an acronym on first use. Cut empty adjectives ("powerful", "seamless", "robust") — they carry no information.
+- **Write for a developer new to this repo, not new to programming.** Assume language and tooling literacy; explain only what's specific to this codebase.
+- **Keep it scannable.** One concept per heading; a list or table beats a paragraph when the content enumerates. Add a table of contents only once a doc grows long.
 
 ## Guardrails
 
