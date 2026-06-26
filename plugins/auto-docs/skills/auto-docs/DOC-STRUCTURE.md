@@ -4,6 +4,12 @@ The canonical layout the skill produces, and a template per file type. Keep it
 Markdown, keep it in the repo, keep it diffable. Adapt headings to the project —
 these are starting points, not a straitjacket.
 
+## Contents
+
+- Layout
+- Conventions
+- Templates: `README.md` (root), `docs/modules/README.md` (index), `docs/overview.md`, `docs/architecture.md`, `docs/modules/<name>.md`, `docs/api/README.md`
+
 ## Layout
 
 ```

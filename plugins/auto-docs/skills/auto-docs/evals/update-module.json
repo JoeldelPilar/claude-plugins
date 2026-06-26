@@ -1,0 +1,15 @@
+{
+  "skills": ["auto-docs"],
+  "query": "A PR just merged that adds a new module with its own endpoints. Update the docs.",
+  "files": ["fixtures/documented-service-plus-module/"],
+  "expected_behavior": [
+    "Runs detect-context.sh and reports MODE=update with a CHANGED_FILES list that includes the new module's source files and excludes docs/ and README.md",
+    "Creates a new docs/modules/<name>.md for the added module and adds a row to docs/modules/README.md",
+    "Adds the new endpoints to docs/api/ with correct method, path, request/response shape, and status codes",
+    "Updates docs/architecture.md (component list + Mermaid diagram) to include the new module",
+    "Adds any new domain term to the docs/overview.md glossary and refreshes the coverage note",
+    "Edits in place and does NOT rewrite or regenerate the module docs the change did not affect (existing modules' pages stay byte-untouched except where genuinely impacted)",
+    "Traces real error paths when documenting endpoints — an uncaught throw that reaches the top-level handler is a 500, not the handler's nominal 400/404",
+    "Runs the review loop to zero INCORRECT, then opens a 'docs: update from auto-docs' PR"
+  ]
+}

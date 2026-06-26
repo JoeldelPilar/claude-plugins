@@ -1,0 +1,16 @@
+{
+  "skills": ["auto-docs"],
+  "query": "Document this repository. It has no docs yet.",
+  "files": ["fixtures/undocumented-service/"],
+  "expected_behavior": [
+    "Runs detect-context.sh and reports MODE=bootstrap (no docs/ directory exists)",
+    "Reads the manifest (package.json/go.mod/etc.) and uses the exact pinned versions and real script names in the README quickstart — no invented commands or flags",
+    "Creates README.md plus a docs/ tree (overview, architecture, per-module docs, api reference) scaled to the repo; skips modules/ or api/ trees the repo does not warrant and drops their links from the README so there are no dead links",
+    "Uses the code's own domain vocabulary (types, routes, table names) rather than invented synonyms",
+    "Includes at least one Mermaid diagram in architecture.md",
+    "Keeps reference pages (modules/, api/) factual and puts the 'why' in overview/architecture — does not blur Diátaxis modes, and does not fabricate a tutorial or how-to guide",
+    "Runs the review loop and reaches zero INCORRECT findings (or leaves <!-- TODO --> markers if the 3-pass cap is hit)",
+    "Writes changes to a docs/ branch and opens a PR titled 'docs: ...' rather than committing to the default branch",
+    "Never copies secret values into docs — references variable names only; adds no AI attribution to commits or the PR"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "skills": ["auto-docs"],
+  "query": "The last merged PR changed only test files. Update the docs if needed.",
+  "files": ["fixtures/documented-service-tests-only-change/"],
+  "expected_behavior": [
+    "Runs detect-context.sh and reports MODE=update",
+    "Recognises that the changed files (tests only) affect no documented behaviour",
+    "Makes NO edits and opens NO PR, and says so plainly — an empty result is a valid outcome",
+    "Does NOT regenerate or reword any existing doc",
+    "If the changed-file list had instead been an '<unknown: ...>' marker, does NOT treat it as 'no changes' — reviews the docs against the current code and refreshes what is stale (this is the distinguishing negative case)"
+  ]
+}
