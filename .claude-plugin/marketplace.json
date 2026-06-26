@@ -8,8 +8,7 @@
     {
       "name": "auto-docs",
       "source": "./plugins/auto-docs",
-      "description": "Generate and maintain docs from code — bootstrap, backfill, and PR-merge updates.",
-      "version": "0.1.0"
+      "description": "Generate and maintain docs from code — bootstrap, backfill, and PR-merge updates."
     }
   ]
 }
