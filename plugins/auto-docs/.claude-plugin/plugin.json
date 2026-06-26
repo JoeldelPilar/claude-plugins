@@ -1,6 +1,6 @@
 {
   "name": "auto-docs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Generates and maintains Markdown documentation from a codebase — bootstraps docs where none exist, backfills an undocumented project, and updates docs when a PR merges. Runs locally or in a GitHub Actions workflow.",
   "author": {
     "name": "Joel del Pilar"
